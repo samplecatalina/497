@@ -1,0 +1,12 @@
+{
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "framework": null,
+  "public": true,
+  "env": [],
+  "build": {
+    "env": {}
+  },
+  "env": {}
+}
