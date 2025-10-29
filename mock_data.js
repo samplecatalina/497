@@ -128,15 +128,28 @@ SearchController.performSearch = async function(query, minRatio, minSimilarity) 
       // Return true if at least one keyword matches
       return matchCount > 0 || textLower.includes(queryLower);
     }).map(item => {
-      // Calculate a simple match ratio based on keyword overlap
+      // Calculate match ratio based on keyword overlap
       const textLower = item.text.toLowerCase();
       const queryWords = queryLower.split(/\s+/);
       const matchCount = queryWords.filter(word => textLower.includes(word)).length;
       const matchPercentage = (matchCount / queryWords.length) * 100;
       
+      // Calculate character-level match for more accuracy
+      let totalQueryChars = queryLower.replace(/\s+/g, '').length;
+      let matchedChars = 0;
+      queryWords.forEach(word => {
+        if (textLower.includes(word)) {
+          matchedChars += word.length;
+        }
+      });
+      const charMatchPercentage = totalQueryChars > 0 ? (matchedChars / totalQueryChars) * 100 : 0;
+      
+      // Combine word-level and character-level matching
+      const finalMatchRatio = Math.round((matchPercentage * 0.6 + charMatchPercentage * 0.4) * 10) / 10;
+      
       return {
         ...item,
-        match_ratio: Math.max(item.match_ratio * (matchPercentage / 100), 70)
+        match_ratio: Math.max(finalMatchRatio, 50) // Minimum 50% if there's any match
       };
     }).filter(item => {
       // Apply the minRatio and minSimilarity filters
