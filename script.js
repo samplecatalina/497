@@ -326,7 +326,7 @@ function displayResults(data, append = false) {
       if (!result || typeof result !== "object") return null;
       const card = document.createElement("div");
       card.className = "result-card";
-      card.addEventListener("click", () => handleCardClick(result));
+      card.addEventListener("click", (e) => handleCardClick(e, result));
       card.style.cursor = "pointer";
 
       const episodeMatch = result.filename ? result.filename.match(/\[P(\d+)\]/) : null;
@@ -337,13 +337,13 @@ function displayResults(data, append = false) {
 
       const cardContent = `
         <div class="result-content">
-          ${result.image ? `<div class="result-image"><img src="${result.image}" alt="Result thumbnail" onerror="this.style.display='none'"></div>` : ""}
+          ${result.image ? `<div class="result-image" data-image="${result.image}"><img src="${result.image}" alt="Result thumbnail" onerror="this.style.display='none'"></div>` : ""}
           <h3>${episodeMatch ? `<span class="tag">${episodeMatch[1]}</span>${cleanFilename.replace(/P\d+/, "").trim()}` : cleanFilename}</h3>
           <p class="result-text">${result.text || ""}</p>
           ${
             result.timestamp
               ? `<p class="result-meta">
-                  ${result.timestamp} · Match rate ${result.match_ratio ? parseFloat(result.match_ratio).toFixed(1) : 0}% · Similarity ${result.similarity ? (result.similarity * 100).toFixed(1) : 0}%
+                  ${result.timestamp} · Match rate ${result.match_ratio ? parseFloat(result.match_ratio).toFixed(1) : 0}%
                 </p>`
               : ""
           }
@@ -376,7 +376,21 @@ function displayResults(data, append = false) {
 }
 
 // Handle card click
-function handleCardClick(result) {
+function handleCardClick(event, result) {
+  // Check if user clicked on the image or its container
+  const imageContainer = event.target.closest('.result-image');
+  
+  if (imageContainer) {
+    // User clicked on image - show modal with larger view
+    event.stopPropagation();
+    const imageSrc = imageContainer.dataset.image;
+    if (imageSrc) {
+      openImageModal(imageSrc, result.text);
+    }
+    return;
+  }
+  
+  // User clicked elsewhere on card - open video link
   const episodeMatch = result.filename.match(/\[P(\d+)\]/);
   const timeMatch = result.timestamp.match(/^(\d+)m(\d+)s$/);
   if (episodeMatch && timeMatch) {
@@ -391,6 +405,53 @@ function handleCardClick(result) {
         break;
       }
     }
+  }
+}
+
+// Image modal functions
+function openImageModal(imageSrc, caption) {
+  // Create modal if it doesn't exist
+  let modal = document.getElementById('imageModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'imageModal';
+    modal.className = 'image-modal';
+    modal.innerHTML = `
+      <div class="image-modal-overlay"></div>
+      <div class="image-modal-content">
+        <button class="image-modal-close" aria-label="Close modal">&times;</button>
+        <img class="image-modal-img" src="" alt="Full size view">
+        <div class="image-modal-caption"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking overlay or close button
+    modal.querySelector('.image-modal-overlay').addEventListener('click', closeImageModal);
+    modal.querySelector('.image-modal-close').addEventListener('click', closeImageModal);
+    
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeImageModal();
+      }
+    });
+  }
+  
+  // Set image and caption
+  modal.querySelector('.image-modal-img').src = imageSrc;
+  modal.querySelector('.image-modal-caption').textContent = caption || '';
+  
+  // Show modal
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  const modal = document.getElementById('imageModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
   }
 }
 
