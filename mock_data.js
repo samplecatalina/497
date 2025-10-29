@@ -6,6 +6,56 @@
 if (typeof SearchController !== 'undefined') {
   SearchController.getMockData = function() {
     return [
+      // New keyword-specific entries with custom images
+      {
+        filename: "[P001]Episode 1.json",
+        text: "You're the first dude who recognized me, bro",
+        timestamp: "2m18s",
+        match_ratio: 96.5,
+        similarity: 0.94,
+        image: "images/e1sh-firsttorecognize.png"
+      },
+      {
+        filename: "[P002]Episode 2.json",
+        text: "We are about to go to one of the most accurate best places in China, chat",
+        timestamp: "8m42s",
+        match_ratio: 94.8,
+        similarity: 0.91,
+        image: "images/e2bj-bestplaceinchina.png"
+      },
+      {
+        filename: "[P003]Episode 3.json",
+        text: "Tell master shane I would like to do what he did on me",
+        timestamp: "14m05s",
+        match_ratio: 93.2,
+        similarity: 0.89,
+        image: "images/e3hn-mastershen.png"
+      },
+      {
+        filename: "[P004]Episode 4.json",
+        text: "We can improve your appetite even better",
+        timestamp: "6m33s",
+        match_ratio: 95.1,
+        similarity: 0.93,
+        image: "images/e4cd-bonappetite.png"
+      },
+      {
+        filename: "[P005]Episode 5.json",
+        text: "Oh you're talking about that track in Germany",
+        timestamp: "11m27s",
+        match_ratio: 92.8,
+        similarity: 0.88,
+        image: "images/e5cq-thattrackingermany.png"
+      },
+      {
+        filename: "[P006]Episode 6.json",
+        text: "We are finally riding the infamous Ronaldo bus",
+        timestamp: "4m51s",
+        match_ratio: 94.3,
+        similarity: 0.90,
+        image: "images/e6hk-ronaldobus.png"
+      },
+      // Original test entries
       {
         filename: "[P001]Episode 1 - Amazing Moments.json",
         text: "This is an incredible moment from the stream",
@@ -65,32 +115,70 @@ SearchController.performSearch = async function(query, minRatio, minSimilarity) 
   if (CONFIG.useMockData) {
     console.log("Mock data mode ENABLED - No external API calls will be made");
     
-    // If query matches the mock keyword, return mock data
-    if (query.toLowerCase() === CONFIG.mockSearchKeyword.toLowerCase()) {
-      console.log("Mock data triggered: Search for '" + CONFIG.mockSearchKeyword + "' returned 6 results");
+    const queryLower = query.toLowerCase().trim();
+    const allData = SearchController.getMockData();
+    
+    // Search through mock data for keyword matches
+    const matchedResults = allData.filter(item => {
+      const textLower = item.text.toLowerCase();
+      // Check if any word from the query appears in the text
+      const queryWords = queryLower.split(/\s+/);
+      const matchCount = queryWords.filter(word => textLower.includes(word)).length;
+      
+      // Return true if at least one keyword matches
+      return matchCount > 0 || textLower.includes(queryLower);
+    }).map(item => {
+      // Calculate a simple match ratio based on keyword overlap
+      const textLower = item.text.toLowerCase();
+      const queryWords = queryLower.split(/\s+/);
+      const matchCount = queryWords.filter(word => textLower.includes(word)).length;
+      const matchPercentage = (matchCount / queryWords.length) * 100;
+      
       return {
-        status: "success",
-        data: SearchController.getMockData(),
-        count: SearchController.getMockData().length,
+        ...item,
+        match_ratio: Math.max(item.match_ratio * (matchPercentage / 100), 70)
       };
-    } else {
-      // For any other search, return no results (local mode only)
-      console.log("Search for '" + query + "' returned no results (only '" + CONFIG.mockSearchKeyword + "' has mock data)");
+    }).filter(item => {
+      // Apply the minRatio and minSimilarity filters
+      return item.match_ratio >= minRatio && item.similarity >= minSimilarity;
+    }).sort((a, b) => b.match_ratio - a.match_ratio);
+    
+    // If we have matches, return them
+    if (matchedResults.length > 0) {
+      console.log(`Mock data triggered: Search for '${query}' returned ${matchedResults.length} results`);
       return {
         status: "success",
-        data: [
-          {
-            count: 0,
-            message: "No results found - Running in LOCAL MOCK DATA mode",
-            suggestions: [
-              "Try searching for '" + CONFIG.mockSearchKeyword + "' to see mock results",
-          
-            ]
-          }
-        ],
-        count: 0
+        data: matchedResults,
+        count: matchedResults.length,
       };
     }
+    
+    // For "test" keyword, return all mock data (backward compatibility)
+    if (queryLower === CONFIG.mockSearchKeyword.toLowerCase()) {
+      console.log("Mock data triggered: Search for '" + CONFIG.mockSearchKeyword + "' returned all results");
+      return {
+        status: "success",
+        data: allData,
+        count: allData.length,
+      };
+    }
+    
+    // No matches found
+    console.log("Search for '" + query + "' returned no results");
+    return {
+      status: "success",
+      data: [
+        {
+          count: 0,
+          message: "No results found - Running in LOCAL MOCK DATA mode",
+          suggestions: [
+            "Try searching for keywords like: 'recognized', 'best places', 'master shane', 'appetite', 'Germany', 'Ronaldo bus'",
+            "Or search for '" + CONFIG.mockSearchKeyword + "' to see all mock results",
+          ]
+        }
+      ],
+      count: 0
+    };
   }
   
   // If mock data is disabled, use the original API implementation
