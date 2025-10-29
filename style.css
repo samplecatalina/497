@@ -56,6 +56,13 @@ body {
     transform: translateY(-1px);
 }
 
+.header-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    image-rendering: crisp-edges;
+}
+
 #title {
     font-family: "Noto Serif SC", serif;
     font-size: 3rem;
@@ -1257,5 +1264,14 @@ button {
     .image-modal-caption {
         font-size: 0.9rem;
         margin-top: 1rem;
+    }
+    
+    .header-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    #title {
+        font-size: 2rem;
     }
 }
